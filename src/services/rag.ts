@@ -1,23 +1,18 @@
-const { PDFReader } = require("@llamaindex/readers/pdf");
-const { CSVReader } = require("@llamaindex/readers/csv");
-const { DocxReader } = require("@llamaindex/readers/docx");
-const { HTMLReader } = require("@llamaindex/readers/html");
+import { PDFReader } from "@llamaindex/readers/pdf";
+import { CSVReader } from "@llamaindex/readers/csv";
+import { DocxReader } from "@llamaindex/readers/docx";
+import { HTMLReader } from "@llamaindex/readers/html";
+import { VectorStoreIndex, Settings, OpenAI } from "llamaindex";
+import { Document } from "@llamaindex/core/schema";
+import { getStorageContext } from "../config/index";
+import dotenv from "dotenv";
+import path from "path";
+import sharp from "sharp";
+import axios from "axios";
+import Tesseract from "tesseract.js";
+import XLSX from "xlsx";
+import fs from "fs";
 
-const { VectorStoreIndex, Settings, OpenAI } = require("llamaindex");
-const { Document } = require("@llamaindex/core/schema");
-const { getStorageContext } = require("./config");
-
-const dotenv = require("dotenv");
-const path = require("path");
-const sharp = require("sharp");
-const axios = require("axios");
-const Tesseract = require("tesseract.js");
-
-const XLSX = require("xlsx");
-
-const fs = require("fs");
-
-dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 const mimeMap: Record<string, string> = {
   "application/pdf": "pdf",
