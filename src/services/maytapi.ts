@@ -15,8 +15,7 @@ export const sendReply = async (phone: string, message: any, type: string = "tex
       payload,
       { headers: { "x-maytapi-key": MAYTAPI_TOKEN } }
     );
-
-    console.log("Response:", res.data);
+    
   } catch (error: any) {
     console.log("Error sending message:", error.response?.data || error.message);
   }

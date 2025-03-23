@@ -1,10 +1,8 @@
 import { PGVectorStore } from "@llamaindex/postgres";
-import { storageContextFromDefaults, OpenAI } from "llamaindex";
+import { storageContextFromDefaults } from "llamaindex";
 import dotenv from "dotenv";
 import path from "path";
 import * as redis from "redis";
-
-
 
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
@@ -20,19 +18,15 @@ export async function getStorageContext(userPhone: string) {
   return await storageContextFromDefaults({ vectorStore: pgVectorStore });
 }
 
-
-
-
 export const MAYTAPI_API_URL = `https://api.maytapi.com/api/${process.env.MAYTAPI_PRODUCT_ID}/${process.env.MAYTAPI_INSTANCE_ID}`;
 export const MAYTAPI_TOKEN = process.env.MAYTAPI_TOKEN;
 
-
 export const redisClient = redis.createClient({
-  url: "redis://localhost:6379",
+  url: process.env.REDIS_URL
 });
 
 redisClient.on("connect", () => {
-  console.log("Connected to Redis");
+  console.log("Connected to Redis", process.env.REDIS_URL);
 });
 
 redisClient.on("error", (err: any) => {
