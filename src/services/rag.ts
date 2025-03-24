@@ -13,7 +13,7 @@ const mimeMap: Record<string, string> = {
   "application/pdf": "pdf",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
   "application/msword": "doc",
-  "text/csv": "csv",
+  "text/comma-separated-values": "csv",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
   "text/html": "html",
   "image/jpeg": "jpg",
