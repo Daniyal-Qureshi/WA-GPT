@@ -23,6 +23,11 @@ export const handleTextProcessing = async (phone:string, userInput:string) => {
 // Handle document processing logic
 export const handleDocumentProcessing = async (phone:string, message:string) => {
   const faqsResponse = await processAndStoreDocument(message, phone);
+  if(faqsResponse?.error) {
+    await sendReply(phone, 'Unsupported Document, please try with another one' );
+    return { status: 'No FAQs generated.' };
+  }
+  
   const faqs:string[] = JSON.parse(faqsResponse);
 
   if (!faqs || faqs.length === 0) {

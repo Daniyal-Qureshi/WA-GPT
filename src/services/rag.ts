@@ -13,7 +13,6 @@ import Tesseract from "tesseract.js";
 import XLSX from "xlsx";
 import fs from "fs";
 
-
 const mimeMap: Record<string, string> = {
   "application/pdf": "pdf",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
@@ -28,11 +27,12 @@ const mimeMap: Record<string, string> = {
   "image/webp": "webp",
 };
 
-Settings.llm = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const TEMP_DIR = path.join(__dirname, "temp");
 
-// 🔹 Function to Download Files from URLs
+if (!fs.existsSync(TEMP_DIR)) {
+  fs.mkdirSync(TEMP_DIR, { recursive: true });
+}
+
 async function downloadFile(
   fileUrl: string,
   outputPath: string
@@ -50,10 +50,11 @@ async function downloadFile(
   }
 }
 
-export async function generateFAQs(index: any) {
+export async function generateFAQs(index: any, extractedText: string) {
   const queryEngine = index.asQueryEngine();
   const faqPrompt = `
-    Based on the stored document content, generate 3 frequently asked questions (FAQs).
+    Based on the following document content, generate 3 frequently asked questions (FAQs).
+    Document Content: "${extractedText}"
     Format: ["Question 1", "Question 2", "Question 3"]
   `;
 
@@ -94,49 +95,56 @@ async function processAndStoreImage(imagePath: string) {
 
 export async function processAndStoreDocument(file: any, userPhone: string) {
   const filePath = await downloadFile(file.url, mimeMap[file.mime]);
-
   let extractedText = "";
 
-  switch (file.type) {
+  switch (mimeMap[file.mime]) {
     case "pdf":
       const pdfReader = new PDFReader();
       extractedText = (await pdfReader.loadData(filePath))
         .map((doc: any) => doc.text)
         .join("\n");
       break;
+
     case "docx":
       const docxReader = new DocxReader();
       extractedText = (await docxReader.loadData(filePath))
         .map((doc: any) => doc.text)
         .join("\n");
       break;
+
     case "csv":
       const csvReader = new CSVReader();
       extractedText = (await csvReader.loadData(filePath))
         .map((doc: any) => doc.text)
         .join("\n");
       break;
+
     case "xlsx":
       extractedText = await processAndStoreExcel(filePath, userPhone);
       break;
+
     case "html":
       const htmlReader = new HTMLReader();
       extractedText = (await htmlReader.loadData(filePath))
         .map((doc: any) => doc.text)
         .join("\n");
       break;
-    case "image":
+
+    case "jpg":
+    case "png":
+    case "jpeg":
+    case "webp":
       extractedText = await processAndStoreImage(filePath);
       break;
 
     default:
-      throw new Error(`Unsupported file type: ${file.type}`);
+      extractedText = "";
   }
 
   console.log(`Extracted Text: ${extractedText}`);
 
   if (!extractedText) {
-    throw new Error("No text extracted from document");
+    return { error: `Unsupported file type: ${file.type}` }
   }
 
   const documents = [
@@ -151,7 +159,7 @@ export async function processAndStoreDocument(file: any, userPhone: string) {
     `Embeddings stored for document: ${file.url}, user: ${userPhone}`
   );
 
-  const faqs = await generateFAQs(index);
+  const faqs = await generateFAQs(index, extractedText);
   return faqs;
 }
 
