@@ -5,3 +5,6 @@ dist
 
 .DS_Store
 *.log
+
+temp
+eng.traineddata

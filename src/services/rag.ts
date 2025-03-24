@@ -2,21 +2,16 @@ import { PDFReader } from "@llamaindex/readers/pdf";
 import { CSVReader } from "@llamaindex/readers/csv";
 import { DocxReader } from "@llamaindex/readers/docx";
 import { HTMLReader } from "@llamaindex/readers/html";
-import { VectorStoreIndex, Settings, OpenAI } from "llamaindex";
-import { Document } from "@llamaindex/core/schema";
+import { VectorStoreIndex, Document } from "llamaindex";
 import { getStorageContext } from "../config/index";
-import dotenv from "dotenv";
-import path from "path";
 import sharp from "sharp";
-import axios from "axios";
 import Tesseract from "tesseract.js";
 import XLSX from "xlsx";
-import fs from "fs";
+import { downloadFile,  cleanupTempFiles, } from "./fileProcessor";
 
 const mimeMap: Record<string, string> = {
   "application/pdf": "pdf",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-    "docx",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
   "application/msword": "doc",
   "text/csv": "csv",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
@@ -26,29 +21,6 @@ const mimeMap: Record<string, string> = {
   "image/bmp": "bmp",
   "image/webp": "webp",
 };
-
-const TEMP_DIR = path.join(__dirname, "temp");
-
-if (!fs.existsSync(TEMP_DIR)) {
-  fs.mkdirSync(TEMP_DIR, { recursive: true });
-}
-
-async function downloadFile(
-  fileUrl: string,
-  outputPath: string
-): Promise<string> {
-  try {
-    const response = await axios({
-      url: fileUrl,
-      method: "GET",
-      responseType: "arraybuffer",
-    });
-    fs.writeFileSync(outputPath, response.data);
-    return outputPath;
-  } catch (error: any) {
-    throw new Error(`Failed to download file: ${error.message}`);
-  }
-}
 
 export async function generateFAQs(index: any, extractedText: string) {
   const queryEngine = index.asQueryEngine();
@@ -61,11 +33,10 @@ export async function generateFAQs(index: any, extractedText: string) {
   const response = await queryEngine.query({ query: faqPrompt });
   const faqs = response.message.content;
 
-  console.log("Generated FAQs:", faqs);
   return faqs;
 }
 
-async function processAndStoreExcel(filePath: string, userPhone: string) {
+async function processAndStoreExcel(filePath: string): Promise<string> {
   const workbook = XLSX.readFile(filePath);
   let extractedText = "";
 
@@ -74,21 +45,13 @@ async function processAndStoreExcel(filePath: string, userPhone: string) {
     extractedText += JSON.stringify(sheetData) + "\n";
   });
 
-  if (!extractedText) {
-    throw new Error("No data extracted from Excel file");
-  }
-
   return extractedText;
 }
 
-async function processAndStoreImage(imagePath: string) {
+async function processAndStoreImage(imagePath: string): Promise<string> {
   const processedImage = await sharp(imagePath).grayscale().toBuffer();
   const { data } = await Tesseract.recognize(processedImage, "eng");
   const extractedText = data.text.trim();
-
-  if (!extractedText) {
-    throw new Error("No text extracted from image");
-  }
 
   return extractedText;
 }
@@ -120,7 +83,7 @@ export async function processAndStoreDocument(file: any, userPhone: string) {
       break;
 
     case "xlsx":
-      extractedText = await processAndStoreExcel(filePath, userPhone);
+      extractedText = await processAndStoreExcel(filePath);
       break;
 
     case "html":
@@ -144,7 +107,7 @@ export async function processAndStoreDocument(file: any, userPhone: string) {
   console.log(`Extracted Text: ${extractedText}`);
 
   if (!extractedText) {
-    return { error: `Unsupported file type: ${file.type}` }
+    return { error: `Unsupported file type: ${file.type}` };
   }
 
   const documents = [
@@ -160,6 +123,7 @@ export async function processAndStoreDocument(file: any, userPhone: string) {
   );
 
   const faqs = await generateFAQs(index, extractedText);
+  cleanupTempFiles();
   return faqs;
 }
 
