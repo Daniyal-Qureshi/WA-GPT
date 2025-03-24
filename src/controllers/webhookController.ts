@@ -16,7 +16,9 @@ export const handleWebhook = async (req: any, res: any) => {
     
     const isLLMSelected = await llmSelection(phone, messageText);
 
-    if(!isLLMSelected) return;
+    if(!isLLMSelected) {
+      return;
+    }
 
     await sendReply(phone, "⏳ Processing your request...");
 
@@ -25,9 +27,6 @@ export const handleWebhook = async (req: any, res: any) => {
       await handleTextProcessing(phone, userInput);
     } else {
       const result = await handleDocumentProcessing(phone, message);
-      if (result.status === "No FAQs generated.") {
-        return res.status(200).send(result.status);
-      }
     }
 
     res.status(200).send("Webhook processed successfully");

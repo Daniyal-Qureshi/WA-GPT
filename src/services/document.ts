@@ -28,24 +28,30 @@ export const handleDocumentProcessing = async (phone:string, message:string) => 
     return { status: 'No FAQs generated.' };
   }
   
-  const faqs:string[] = JSON.parse(faqsResponse);
+  let faqs: string[];
 
-  if (!faqs || faqs.length === 0) {
-    await sendReply(phone, 'No FAQs found in the document.');
-    return { status: 'No FAQs generated.' };
-  }
+  try {
+      faqs = JSON.parse(faqsResponse);
+      if (!Array.isArray(faqs)) {
+          throw new Error("Parsed FAQs is not an array");
+      }
+      
+      await setFAQsInRedis(phone, faqs);
 
-  // Store FAQs in Redis
-  await setFAQsInRedis(phone, faqs);
-
-  const faqList = faqs
-    .slice(0, 10)
-    .map((question, index) => `${index + 1}. ${question}`)
-    .join('\n');
-
-  const messageText = `📌 *FAQs from your document:*\n\n${faqList}\n\n👉 Reply with the number of the question you want to ask.`;
-
-  await sendReply(phone, messageText);
+      const faqList = faqs
+        .slice(0, 10)
+        .map((question, index) => `${index + 1}. ${question}`)
+        .join('\n');
+    
+      const messageText = `📌 *FAQs from your document:*\n\n${faqList}\n\n👉 Reply with the number of the question you want to ask.`;
+    
+      await sendReply(phone, messageText);  
+  
+    } catch (error) {
+      console.error("Invalid JSON response for FAQs:", error);
+      await sendReply(phone, 'Your document has been processed\n Please send your queries');
+      return { status: 'Failed to parse FAQs.' };
+     }
 
   return { status: 'FAQs processed successfully.' };
 };
