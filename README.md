@@ -2,6 +2,10 @@
 
 This project is a WhatsApp-based Retrieval-Augmented Generation (RAG) system that allows users to upload documents, extract text, generate FAQs, and interact with the content using natural language queries. The system leverages LlamaIndex for document processing, OpenAI/Groq/Gemini for language models, and Redis for storing FAQs and user preferences.
 
+
+https://github.com/user-attachments/assets/59f99f59-c679-43b7-942b-3d704226d080
+
+
 ---
 
 ## Features
